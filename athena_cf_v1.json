@@ -1,0 +1,172 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Athena project infrastrcture.",
+  "Parameters": {
+    "environmentName": {
+      "Type": "String"
+    }
+  },
+  "Outputs": {
+    "athenaBucketName": {
+      "Value": {
+        "Ref": "athenaBucket"
+      }
+    }
+  },
+  "Conditions": {
+    "RganesanTest": {
+      "Fn::Equals": [
+        {
+          "Ref": "environmentName"
+        },
+        "rganesan"
+      ]
+    }
+  },
+  "Resources": {
+    "athenaBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": {
+          "Fn::Join": [
+            "-",
+            [
+              {
+                "Ref": "environmentName"
+              },
+              "athena-bucket"
+            ]
+          ]
+        },
+        "AccessControl": "Private",
+        "Tags": [
+          {
+            "Key": "rganesnn.S3BucketName",
+            "Value": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Ref": "environmentName"
+                  },
+                  "athena-bucket"
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "DeletionPolicy": "Delete"
+    },
+    "glueDatabaseTest": {
+      "Type": "AWS::Glue::Database",
+      "Properties": {
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        },
+        "DatabaseInput": {
+          "Name": {
+            "Fn::Join": [
+              "",
+              [
+                {
+                  "Ref": "environmentName"
+                },
+                "_db"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "athenaTable": {
+      "Type": "AWS::Glue::Table",
+      "Properties": {
+        "CatalogId": {
+          "Ref": "AWS::AccountId"
+        },
+        "DatabaseName": {
+          "Ref": "glueDatabaseTest"
+        },
+        "TableInput": {
+          "Name": "hit_data",
+          "TableType": "EXTERNAL_TABLE",
+          "StorageDescriptor": {
+            "InputFormat": "org.apache.hadoop.mapred.TextInputFormat",
+            "OutputFormat": "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+            "Location": {
+              "Fn::Join": [
+                "",
+                [
+                  "s3://",
+                  {
+                    "Ref": "athenaBucket"
+                  },
+                  "/incoming"
+                ]
+              ]
+            },
+            "SerdeInfo": {
+              "SerializationLibrary": "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+              "Parameters": {
+                "field.delim": "\t",
+                "escape.delim": "\\",
+                "skip.header.line.count": "1"
+              }
+            },
+            "Columns": [
+              {
+                "Name": "hit_time_gmt",
+                "Type": "bigint"
+              },
+              {
+                "Name": "date_time",
+                "Type": "timestamp"
+              },
+              {
+                "Name": "user_agent",
+                "Type": "string"
+              },
+              {
+                "Name": "ip",
+                "Type": "varchar(20)"
+              },
+              {
+                "Name": "event_list",
+                "Type": "string"
+              },
+              {
+                "Name": "geo_city",
+                "Type": "varchar(32)"
+              },
+              {
+                "Name": "geo_country",
+                "Type": "varchar(4)"
+              },
+              {
+                "Name": "geo_region",
+                "Type": "varchar(32)"
+              },
+              {
+                "Name": "pagename",
+                "Type": "varchar(100)"
+              },
+              {
+                "Name": "page_url",
+                "Type": "varchar(255)"
+              },
+              {
+                "Name": "product_list",
+                "Type": "string"
+              },
+              {
+                "Name": "referrer",
+                "Type": "varchar(255)"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
